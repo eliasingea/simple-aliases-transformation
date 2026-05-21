@@ -29,6 +29,7 @@ function isStandardNumberToken(token) {
   );
 }
 
+
 function generateStandardAliases(input) {
   const normalized = normalizeText(input);
   const tokens = normalized.split(" ").filter(Boolean);
@@ -36,7 +37,7 @@ function generateStandardAliases(input) {
   const aliases = new Set([
     input,
     normalized,
-    compact(input)
+    compact(input),
   ]);
 
   const firstNumberIndex = tokens.findIndex(isStandardNumberToken);
@@ -92,8 +93,35 @@ function generateStandardAliases(input) {
     aliases.add(`${tailPrefixCompact}${compactNumber}`);
   }
 
+  // Optional date handling
   const yearIndex = tokens.findIndex(token => /^(19|20)\d{2}$/.test(token));
+  const year = yearIndex !== -1 ? tokens[yearIndex] : null;
   const monthToken = yearIndex !== -1 ? tokens[yearIndex + 1] : null;
+
+   // Non-adjacent prefix pair aliases:
+// DIN Fachbericht CEN 15563 -> DIN-CEN 15563
+for (let i = 0; i < prefixTokens.length; i++) {
+  for (let j = i + 1; j < prefixTokens.length; j++) {
+    const pair = [prefixTokens[i], prefixTokens[j]];
+    const pairSpace = pair.join(" ");
+    const pairDash = pair.join("-");
+    const pairCompact = pair.join("");
+
+    aliases.add(`${pairSpace} ${mainNumber}`);
+    aliases.add(`${pairDash} ${mainNumber}`);
+    aliases.add(`${pairCompact}${compactNumber}`);
+
+    if (year) {
+      aliases.add(`${pairSpace} ${mainNumber}:${year}`);
+      aliases.add(`${pairDash} ${mainNumber}:${year}`);
+    }
+
+    if (year && monthToken) {
+      aliases.add(`${pairSpace} ${mainNumber}:${year}-${monthToken}`);
+      aliases.add(`${pairDash} ${mainNumber}:${year}-${monthToken}`);
+    }
+  }
+}
 
   if (yearIndex !== -1) {
     const year = tokens[yearIndex];
@@ -106,6 +134,8 @@ function generateStandardAliases(input) {
       aliases.add(`${mainNumber}:${year}-${monthToken}`);
     }
   }
+
+ 
 
   return [...aliases];
 }
